@@ -10,10 +10,7 @@ the queue, record cash, verify QR payments and mark orders as taken.
 - JDK 21 or newer (you have JDK 26).
 - IntelliJ IDEA.
 - A MongoDB server. For development this is **MongoDB Community Server on your own PC** (it runs as the Windows
-  service "MongoDB", port 27017). MongoDB Atlas still works too (see section 3).
-- The `MONGODB_URI` environment variable in your IntelliJ run configuration:
-  - local development: `mongodb://localhost:27017/campus_canteen`
-  - Atlas: your Atlas connection string (keep it in its own run configuration).
+  service "MongoDB", port). MongoDB Atlas still works too (see section 3).
 
 Maven does not need to be installed: the project includes the Maven Wrapper (`mvnw` / `mvnw.cmd`).
 
@@ -25,28 +22,11 @@ Maven does not need to be installed: the project includes the Maven Wrapper (`mv
    Right-click `pom.xml` in the Project panel and choose **Add as Maven Project** (if you only see
    **Maven > Reload project**, it is already loaded). Wait until the progress bar at the bottom finishes
    downloading dependencies. A **Maven** tool window appears on the right, showing `campus-canteen`.
-3. Create a **separate run configuration for the local database** (your `MongoDB Atlas` one stays unchanged):
-   1. **Run > Edit Configurations...**, select `MongoDB Atlas`, click the **Copy Configuration** button
-      (two-sheets icon at the top of the list).
-   2. Rename the copy to `Local MongoDB`.
-   3. **Main class:** `com.campuscanteen.CampusCanteenApplication`; **Use classpath of module:** `campus-canteen`.
-   4. In **Environment variables**, click the list icon, select `MONGODB_URI` and replace its value (only in the
-      copy) with `mongodb://localhost:27017/campus_canteen`. Click **OK**.
-   5. Check: open `MongoDB Atlas` again; it must still have its original value.
-4. Choose `Local MongoDB` in the run-configuration drop-down and run it. When the log shows
-   `Connected to MongoDB. Using database 'campus_canteen'.` and `Database setup complete.`,
+3. Run the main class `com.campuscanteen.CampusCanteenApplication` (use classpath of module: `campus-canteen`).
+   When the log shows `Connected to MongoDB. Using database 'campus_canteen'.` and `Database setup complete.`,
    open <http://localhost:8080>.
 
 The local database and Atlas are completely separate: data saved locally does not appear in Atlas, and the other way round.
-
-Optional settings (environment variables; you do not need any of them):
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `MONGODB_DATABASE` | `campus_canteen` | Database name (this setting wins over a name written in `MONGODB_URI`) |
-| `CANTEEN_TIMEZONE` | `Asia/Kolkata` | Decides "today", the open meal session and token resets |
-| `CANTEEN_UPLOAD_DIR` | `uploads` | Folder for payment screenshots and the QR image |
-| `PORT` | `8080` | Web server port |
 
 ## 3. The database: local MongoDB and Atlas
 
@@ -55,9 +35,9 @@ says in plain English what is wrong and what to check (the connection string is 
 
 | Message says | Meaning | Where to fix it |
 |---|---|---|
-| "No MongoDB server answered" with a `localhost` URI | The local MongoDB service is not running | Windows **Services** app > **MongoDB Server (MongoDB)** > **Start** |
+| "No MongoDB server answered" with a `localhost` address | The local MongoDB service is not running | Windows **Services** app > **MongoDB Server (MongoDB)** > **Start** |
 | "Atlas refused the secure connection ... IP address is not on the Atlas allow list" | Atlas does not accept this computer | Atlas > **Security > Network Access** > add your public IP (find it at <https://api.ipify.org>), wait for *Active* |
-| "rejected the database username or password" | Wrong user or password in `MONGODB_URI` | Atlas > **Security > Database Access** |
+| "rejected the database username or password" | Wrong user or password in the connection string | Atlas > **Security > Database Access** |
 | "cluster address ... could not be found" | Typo in the host part, or no internet/DNS | Copy the string again from Atlas > **Connect > Drivers** |
 | "No MongoDB server answered" | Network blocked or offline | Internet connection, firewall/college network (port 27017) |
 
@@ -87,25 +67,11 @@ normal registration page.
 
 - **First administrator.** While the database has no administrator at all, this page lets one person register as the
   first administrator (the server claims this place with one atomic update, so two people cannot both get it).
-  If you set the optional environment variable `CANTEEN_SETUP_CODE`, that code must be typed too, which is a good idea
-  if the site can be reached by others before you register.
 - **Every later administrator** needs a one-time **invitation code**. An existing administrator opens **Accounts** and
   clicks **Create invitation code**. The code is shown once, works once and expires after 24 hours. Only a hash of it is
   stored (inside the `canteens` document).
 
 Then log in at <http://localhost:8080/admin/login>.
-
-**Alternative: environment variables** (the older method, still supported):
-
-1. In your IntelliJ run configuration, add three environment variables next to `MONGODB_URI`:
-   - `CANTEEN_ADMIN_ID` - the admin login ID, e.g. `CANTEEN01`
-   - `CANTEEN_ADMIN_NAME` - e.g. `Canteen Manager`
-   - `CANTEEN_ADMIN_PASSWORD` - at least 8 characters
-2. Run the application once. The log shows `Administrator account CANTEEN01 created.`
-3. **Remove the three variables** from the run configuration.
-4. Log in at <http://localhost:8080/admin/login>.
-
-An existing account is never changed, and passwords are never reset on restart.
 
 ### Forgotten administrator password
 
@@ -117,25 +83,11 @@ the date it was changed.
 
 1. Build the application once (this also runs the tests): in PowerShell in the project folder,
    `.\mvnw.cmd -DskipTests package`
-2. In the **same** PowerShell window, set the database address for this window only:
-   `$env:MONGODB_URI = 'mongodb://localhost:27017/campus_canteen'`
-3. Run: `.\reset-admin-password.cmd --admin-id CANTEENADMIN01 --database campus_canteen`
-4. Type the new password twice (8-64 characters; nothing is shown while you type), then type `RESET`.
-5. Close the PowerShell window (this removes the temporary `MONGODB_URI` setting) and log in at
-   <http://localhost:8080/admin/login>. The website does not need a restart.
+2. Run: `.\reset-admin-password.cmd --admin-id CANTEENADMIN01 --database campus_canteen`
+3. Type the new password twice (8-64 characters; nothing is shown while you type), then type `RESET`.
+4. Log in at <http://localhost:8080/admin/login>. The website does not need a restart.
 
 The program's source is `src/main/java/com/campuscanteen/tools/AdminPasswordReset.java`.
-
-### Local-development invitation code
-
-For local development you can set a reusable invitation code instead of asking an administrator for a one-time code.
-Add the environment variable `CANTEEN_ADMIN_INVITATION_CODE` (for example `YIC@1234`) to the **Local MongoDB** run
-configuration, restart, and type that code on <http://localhost:8080/admin/register>. It can be used for any number
-of new administrators. The one-time invitation codes keep working as before.
-
-It is **off** unless the variable is set, and even then it is only accepted when MongoDB runs on this computer
-(`localhost`) **and** the registration page is opened on this computer. With Atlas, or from another device, it is
-refused. Never set it on a deployed server. The code is not stored in the database or written to the log.
 
 ## 5. Setting up the canteen (first time, as administrator)
 
@@ -233,11 +185,10 @@ items not on the new menu are removed, the customer is told which ones and why, 
 | File | Purpose |
 |---|---|
 | `pom.xml` | Maven build: Spring Boot, Thymeleaf, MongoDB, Security, Validation |
-| `src/main/resources/application.properties` | Settings (reads `MONGODB_URI`, database name, upload limits) |
-| `config/MongoConfig.java` | Connects to MongoDB using `MONGODB_URI` (trims accidental spaces, never logs it) |
+| `src/main/resources/application.properties` | Settings (database name, upload limits) |
+| `config/MongoConfig.java` | Connects to MongoDB (trims accidental spaces, never logs the connection string) |
 | `config/DatabaseInitializer.java` | Pings MongoDB, creates collections and indexes, creates the default canteen |
 | `config/SecurityConfig.java` | Login, logout, role rules, BCrypt, CSRF |
-| `config/AdminAccountSetup.java` | Creates the first administrator from environment variables |
 | `service/AdminRegistrationService.java` | `/admin/register`: first-administrator setup and invitation codes |
 | `web/AdminRegistrationController.java` | Administrator registration page and invitation button |
 | `config/MongoConnectionProblem.java` | Explains connection failures in plain English |
@@ -264,16 +215,14 @@ items not on the new menu are removed, the customer is told which ones and why, 
 
 ## 8. Running the tests
 
-In IntelliJ: right-click `src/test/java` > **Run 'All Tests'** (add `MONGODB_URI` to that test run configuration
-for the database tests). From PowerShell in the project folder, against the local server:
+In IntelliJ: right-click `src/test/java` > **Run 'All Tests'**. From PowerShell in the project folder, against the
+local server:
 
 ```
-$env:MONGODB_URI = "mongodb://localhost:27017/campus_canteen"
 .\mvnw.cmd test
 ```
 
-Database tests are skipped automatically if `MONGODB_URI` is not set. They only ever use the separate
-`campus_canteen_test` database (even though the URI above names `campus_canteen`): every test first checks that the
+Database tests only ever use the separate `campus_canteen_test` database: every test first checks that the
 database name ends in `_test` and refuses to run otherwise. Tests empty `campus_canteen_test` before each test.
 If the server refuses the connection, the tests fail at startup with the "Could not connect to MongoDB" explanation;
 that is a connection problem, not a bug in the application.
