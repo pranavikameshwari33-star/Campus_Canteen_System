@@ -73,13 +73,6 @@ normal registration page.
 
 Then log in at <http://localhost:8080/admin/login>.
 
-### Forgotten administrator password
-
-There is no "forgot password" page on the website (on purpose). Instead, a small separate program on your
-computer sets a new password for an **existing** administrator. It only works with the local MongoDB server
-(`localhost`) and only with the databases `campus_canteen` or `campus_canteen_test`. It refuses Atlas and every
-other server, never creates or deletes accounts, and only changes the password (stored as a BCrypt hash) plus
-the date it was changed.
 
 1. Build the application once (this also runs the tests): in PowerShell in the project folder,
    `.\mvnw.cmd -DskipTests package`
