@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Welcome')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container">
+    <h1 th:text="${current.canteen.name} + ' - pre-order your meal'">College Canteen - pre-order your meal</h1>
+    <p>Order and pay before the break, then collect your food with a token instead of waiting in the queue.
+        Open to students and faculty.</p>
+
+    <div class="actions" style="margin-bottom: 24px">
+        <a class="btn" th:href="@{/login}">Log in</a>
+        <a class="btn btn-secondary" th:href="@{/register}">Register</a>
+    </div>
+
+    <h2>How it works</h2>
+    <ol class="steps">
+        <li>Register with your college roll number or faculty ID, then log in.</li>
+        <li>Choose items from the menu of the current meal session and add them to your cart.</li>
+        <li>At checkout, choose <strong>Cash</strong> (pay at the counter) or <strong>QR Code</strong> (pay by UPI and send a screenshot).</li>
+        <li>As soon as you choose, your order joins the queue and you receive a pickup token.</li>
+        <li>When your order shows <strong>Ready for pickup</strong>, show your token at the counter to collect it.</li>
+    </ol>
+    <p class="muted">Orders are served strictly in the order they were placed. Students and faculty have equal priority.</p>
+
+    <h2>Ordering hours</h2>
+    <div th:if="${current.sessions.isEmpty()}" class="alert alert-info">Meal timings have not been set up yet.</div>
+    <div class="table-wrap narrow" th:unless="${current.sessions.isEmpty()}">
+        <table>
+            <thead><tr><th>Meal</th><th>Ordering open</th></tr></thead>
+            <tbody>
+            <tr th:each="s : ${current.sessions}">
+                <td th:text="${s.name}">Lunch</td>
+                <td th:text="${s.timeRange}">12:00 - 14:30</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p class="small muted">Canteen staff: <a th:href="@{/admin/login}">administrator login</a></p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

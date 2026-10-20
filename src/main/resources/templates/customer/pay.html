@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Pay by QR code')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container" th:with="p=${order.paymentStatus.name()}, open=${(p == 'QR_PAYMENT_PENDING' or p == 'QR_PROOF_SUBMITTED') and !order.orderStatus.finished}">
+    <h1>Pay by QR code</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+
+    <div class="token-box">
+        <div class="small muted">Your pickup token</div>
+        <div class="token" th:text="${order.tokenDisplay}">007</div>
+        <div class="small">Your order is already in the queue.</div>
+    </div>
+
+    <div class="checkout-total">
+        <span>Amount to pay</span>
+        <strong th:text="${@fmt.money(order.totalAmount)}">₹80.00</strong>
+    </div>
+
+    <p>Payment status: <span th:class="${@fmt.statusClass(order.paymentStatus)}" th:text="${order.paymentStatus.label}">QR payment pending</span></p>
+
+    <div th:unless="${open}" class="alert alert-info">
+        The payment for this order has already been checked. <a th:href="@{/orders/{id}(id=${order.id})}">View your order</a>
+    </div>
+
+    <div th:if="${open}">
+        <h2>1. Scan and pay</h2>
+        <div class="panel">
+            <p>Scan the QR code with any UPI app and pay exactly
+                <strong th:text="${@fmt.money(order.totalAmount)}">₹80.00</strong>.</p>
+            <img class="qr" th:if="${canteen.paymentQrConfigured}" th:src="@{/files/payment-qr}" alt="Canteen UPI payment QR code">
+            <p th:unless="${canteen.paymentQrConfigured}" class="muted">The canteen has not uploaded a QR code. Use the UPI ID below.</p>
+            <p th:if="${canteen.upiId}">UPI ID: <strong th:text="${canteen.upiId}">canteen@bank</strong></p>
+        </div>
+
+        <h2>2. Send your payment screenshot</h2>
+        <p th:if="${payment != null and payment.proofUploaded}" class="small">
+            You already sent a screenshot. <a th:href="@{${payment.proofImageUrl}}" target="_blank" rel="noopener">View it</a>.
+            You can send a new one below if it was wrong.</p>
+        <form th:action="@{/orders/{id}/payment-proof(id=${order.id})}" method="post" enctype="multipart/form-data" class="narrow">
+            <div class="field">
+                <label for="paymentProof">Payment screenshot (JPEG or PNG, up to 5 MB)</label>
+                <input type="file" id="paymentProof" name="paymentProof" accept="image/jpeg,image/png" data-max-bytes="5242880" required>
+            </div>
+            <div class="field">
+                <label for="transactionRef">UPI transaction ID (optional)</label>
+                <input type="text" id="transactionRef" name="transactionRef" maxlength="40">
+                <div class="hint">Shown in your UPI app after payment. It helps the canteen find your payment quickly.</div>
+            </div>
+            <button type="submit" class="btn" data-loading="Sending...">Send screenshot</button>
+        </form>
+        <p class="small muted">Canteen staff check every QR payment in their UPI account. Until then your payment shows as
+            pending, but your order keeps its place in the queue and its token.</p>
+    </div>
+
+    <p><a th:href="@{/orders/{id}(id=${order.id})}">View order status</a></p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

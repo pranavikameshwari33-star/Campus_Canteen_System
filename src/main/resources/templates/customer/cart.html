@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Cart')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container">
+    <h1>Your cart</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+
+    <div th:unless="${current.orderingOpen}" class="alert alert-info">
+        Ordering is closed right now, so your cart is empty. <a th:href="@{/menu}">See ordering hours</a>.
+    </div>
+
+    <div th:if="${current.orderingOpen}">
+        <div th:if="${cartView.empty}">
+            <p>Your cart is empty.</p>
+            <a class="btn" th:href="@{/menu}">Go to menu</a>
+        </div>
+
+        <div th:unless="${cartView.empty}">
+            <div class="alert alert-error" role="alert" th:unless="${cartView.problems.isEmpty()}">
+                <ul><li th:each="p : ${cartView.problems}" th:text="${p}">Problem</li></ul>
+            </div>
+
+            <p class="muted" th:text="${current.openSession.name} + ' order'">Lunch order</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr><th>Item</th><th class="num">Price</th><th>Quantity</th><th class="num">Subtotal</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="line : ${cartView.lines}">
+                        <td>
+                            <span th:text="${line.name}">Dosa</span>
+                            <div class="small" style="color: #b42318" th:if="${line.problem}" th:text="${line.problem}"></div>
+                        </td>
+                        <td class="num" th:text="${@fmt.money(line.unitPrice)}">₹40.00</td>
+                        <td>
+                            <form class="actions" th:action="@{/cart/update}" method="post">
+                                <input type="hidden" name="menuItemId" th:value="${line.menuItemId}">
+                                <input class="qty" type="number" name="quantity" min="1" th:max="${line.maxQuantity}"
+                                       th:value="${line.quantity}" th:aria-label="'Quantity of ' + ${line.name}">
+                                <button type="submit" class="btn btn-secondary">Update</button>
+                            </form>
+                        </td>
+                        <td class="num" th:text="${@fmt.money(line.subtotal)}">₹80.00</td>
+                        <td>
+                            <form th:action="@{/cart/remove}" method="post">
+                                <input type="hidden" name="menuItemId" th:value="${line.menuItemId}">
+                                <button type="submit" class="link-button">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr class="total">
+                        <td colspan="3">Total</td>
+                        <td class="num" th:text="${@fmt.money(cartView.total)}">₹80.00</td>
+                        <td></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="actions">
+                <a class="btn btn-secondary" th:href="@{/menu}">Add more items</a>
+                <a class="btn" th:href="@{/checkout}" th:if="${cartView.readyForCheckout}">Proceed to checkout</a>
+            </div>
+        </div>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

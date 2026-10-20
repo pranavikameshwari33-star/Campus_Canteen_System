@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<!-- Shared parts used by every page: <head>, header/navigation, messages and footer. -->
+
+<head th:fragment="head(title)">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' - Campus Canteen'">Campus Canteen</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+
+<body>
+
+<header th:fragment="header" class="site">
+    <div class="container topbar"
+         th:with="path=${currentPath != null ? currentPath : ''}, admin=${currentUser != null and currentUser.admin}">
+        <a class="brand" th:href="@{/}">Campus Canteen</a>
+
+        <nav class="main" th:if="${currentUser != null and !admin}" aria-label="Main">
+            <a th:href="@{/home}" th:classappend="${path == '/home'} ? 'active'">Home</a>
+            <a th:href="@{/menu}" th:classappend="${path.startsWith('/menu')} ? 'active'">Menu</a>
+            <a th:href="@{/cart}" th:classappend="${path.startsWith('/cart') or path.startsWith('/checkout')} ? 'active'">Cart</a>
+            <a th:href="@{/orders}" th:classappend="${path.startsWith('/orders')} ? 'active'">My orders</a>
+        </nav>
+
+        <nav class="main" th:if="${admin}" aria-label="Administration">
+            <a th:href="@{/admin}" th:classappend="${path == '/admin'} ? 'active'">Dashboard</a>
+            <a th:href="@{/admin/payments}" th:classappend="${path.startsWith('/admin/payments')} ? 'active'">Payments</a>
+            <a th:href="@{/admin/queue}" th:classappend="${path.startsWith('/admin/queue') or path.startsWith('/admin/orders')} ? 'active'">Queue</a>
+            <a th:href="@{/admin/daily-menu}" th:classappend="${path.startsWith('/admin/daily-menu')} ? 'active'">Daily menu</a>
+            <a th:href="@{/admin/menu-items}" th:classappend="${path.startsWith('/admin/menu-items')} ? 'active'">Food items</a>
+            <a th:href="@{/admin/sessions}" th:classappend="${path.startsWith('/admin/sessions')} ? 'active'">Meal timings</a>
+            <a th:href="@{/admin/history}" th:classappend="${path.startsWith('/admin/history')} ? 'active'">History</a>
+            <a th:href="@{/admin/reports}" th:classappend="${path.startsWith('/admin/reports')} ? 'active'">Reports</a>
+            <a th:href="@{/admin/accounts}" th:classappend="${path.startsWith('/admin/accounts')} ? 'active'">Accounts</a>
+            <a th:href="@{/admin/settings}" th:classappend="${path.startsWith('/admin/settings')} ? 'active'">Settings</a>
+        </nav>
+
+        <div class="user" th:if="${currentUser != null}">
+            <span th:text="${currentUser.name} + ' (' + ${currentUser.collegeId} + ')'">Name (ID)</span>
+            <form class="inline" th:action="@{/logout}" method="post">
+                <button type="submit" class="link-button">Log out</button>
+            </form>
+        </div>
+
+        <nav class="main" th:if="${currentUser == null}" aria-label="Account">
+            <a th:href="@{/login}" th:classappend="${path == '/login'} ? 'active'">Log in</a>
+            <a th:href="@{/register}" th:classappend="${path == '/register'} ? 'active'">Register</a>
+        </nav>
+    </div>
+</header>
+
+<div th:fragment="messages">
+    <div class="alert alert-success" role="status" th:if="${success}" th:text="${success}">Success</div>
+    <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}">Error</div>
+    <div class="alert alert-info" role="status" th:if="${notice}" th:text="${notice}">Notice</div>
+</div>
+
+<footer th:fragment="footer" class="site">
+    <div class="container footer-row"><span>Campus Canteen pre-ordering and token system</span> <a th:href="@{/images/food/credits.html}">Food photo credits</a></div>
+</footer>
+
+</body>
+</html>

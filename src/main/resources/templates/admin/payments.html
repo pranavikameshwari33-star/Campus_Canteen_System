@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Payments')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container">
+    <div data-refresh="60"></div>
+    <h1>Payments</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+    <p class="muted">Every order here is already in the queue with its token. Payments are only marked as paid when you
+        confirm them: check the canteen's UPI account before verifying a QR payment, and record cash only when you
+        have received it.</p>
+
+    <h2>QR payments to check</h2>
+    <p th:if="${qrToCheck.isEmpty()}" class="muted">No QR payments are waiting to be checked.</p>
+    <div class="table-wrap" th:unless="${qrToCheck.isEmpty()}">
+        <table class="stack">
+            <thead>
+            <tr><th>Token</th><th>Customer</th><th>Items</th><th class="num">Amount</th><th>Payment status</th>
+                <th>UPI transaction ID</th><th>Screenshot</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${qrToCheck}" th:with="o=${p.order}, amount=${@fmt.money(p.order.totalAmount)}">
+                <td data-label="Token">
+                    <strong th:text="${o.tokenDisplay}">007</strong>
+                    <div class="small muted" th:text="${@fmt.time(o.queueEnteredAt)}">12:05 PM</div>
+                </td>
+                <td data-label="Customer">
+                    <span th:text="${o.customerName}">Name</span>
+                    <div class="small muted" th:text="${o.collegeId}">ID</div>
+                </td>
+                <td data-label="Items"><div th:each="i : ${o.items}" th:text="${i.quantity} + ' x ' + ${i.itemName}">2 x Dosa</div></td>
+                <td data-label="Amount" class="num"><strong th:text="${@fmt.money(o.totalAmount)}">₹80.00</strong></td>
+                <td data-label="Status">
+                    <span th:class="${@fmt.statusClass(o.paymentStatus)}" th:text="${o.paymentStatus.label}">QR payment pending</span>
+                    <div class="small muted" th:text="'Order: ' + ${o.orderStatus.label}">Order: In queue</div>
+                </td>
+                <td data-label="UPI ref" th:text="${p.payment != null and p.payment.transactionRef != null} ? ${p.payment.transactionRef} : '-'">-</td>
+                <td data-label="Screenshot">
+                    <div th:if="${p.payment != null and p.payment.proofUploaded}">
+                        <a th:href="@{/files/payment-proof/{id}(id=${o.id})}" target="_blank" rel="noopener">
+                            <img class="proof-thumb" th:src="@{/files/payment-proof/{id}(id=${o.id})}" alt="Payment screenshot">
+                        </a>
+                        <div class="small"><a th:href="@{/files/payment-proof/{id}(id=${o.id})}" target="_blank" rel="noopener">Open full size</a></div>
+                    </div>
+                    <span th:unless="${p.payment != null and p.payment.proofUploaded}" class="muted">Not sent yet</span>
+                </td>
+                <td data-label="Action">
+                    <form th:action="@{/admin/orders/{id}/verify(id=${o.id})}" method="post" style="margin-bottom: 10px"
+                          th:attr="data-confirm='Have you checked that ' + ${amount} + ' arrived in the canteen UPI account?'">
+                        <button type="submit" class="btn">Verify payment</button>
+                    </form>
+                    <form th:action="@{/admin/orders/{id}/reject(id=${o.id})}" method="post"
+                          data-confirm="Reject this payment? The order will be removed from the queue.">
+                        <label class="small" th:for="'reason-' + ${o.id}" style="font-weight: normal">Reason for rejecting</label>
+                        <input type="text" name="reason" th:id="'reason-' + ${o.id}" maxlength="200" required
+                               placeholder="e.g. Amount not received" style="max-width: 220px; margin-bottom: 6px">
+                        <br>
+                        <button type="submit" class="btn btn-danger">Reject</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2>Cash due at pickup</h2>
+    <p th:if="${cashDue.isEmpty()}" class="muted">No cash payments are due.</p>
+    <div class="table-wrap" th:unless="${cashDue.isEmpty()}">
+        <table class="stack">
+            <thead><tr><th>Token</th><th>Customer</th><th class="num">Amount due</th><th>Order status</th><th>Action</th></tr></thead>
+            <tbody>
+            <tr th:each="o : ${cashDue}" th:with="amount=${@fmt.money(o.totalAmount)}">
+                <td data-label="Token"><strong th:text="${o.tokenDisplay}">007</strong></td>
+                <td data-label="Customer">
+                    <span th:text="${o.customerName}">Name</span>
+                    <div class="small muted" th:text="${o.collegeId}">ID</div>
+                </td>
+                <td data-label="Amount due" class="num"><strong th:text="${@fmt.money(o.totalAmount)}">₹80.00</strong></td>
+                <td data-label="Status"><span th:class="${@fmt.statusClass(o.orderStatus)}" th:text="${o.orderStatus.label}">In queue</span></td>
+                <td data-label="Action">
+                    <form th:action="@{/admin/orders/{id}/cash(id=${o.id})}" method="post"
+                          th:attr="data-confirm='Received ' + ${amount} + ' in cash for token ' + ${o.tokenDisplay} + '?'">
+                        <input type="hidden" name="back" value="payments">
+                        <button type="submit" class="btn btn-secondary">Cash received</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2>Rejected today</h2>
+    <p th:if="${rejected.isEmpty()}" class="muted">No payments were rejected today.</p>
+    <div class="table-wrap" th:unless="${rejected.isEmpty()}">
+        <table>
+            <thead><tr><th>Token</th><th>Customer</th><th class="num">Amount</th><th>Reason</th><th></th></tr></thead>
+            <tbody>
+            <tr th:each="o : ${rejected}">
+                <td th:text="${o.tokenDisplay ?: '-'}">007</td>
+                <td th:text="${o.customerName} + ' (' + ${o.collegeId} + ')'">Name (ID)</td>
+                <td class="num" th:text="${@fmt.money(o.totalAmount)}">₹80.00</td>
+                <td th:text="${o.statusNote}">Amount not received</td>
+                <td><a th:href="@{/admin/orders/{id}(id=${o.id})}">Details</a></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Food items')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container">
+    <h1>Food items</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+    <p class="muted">This is the permanent list of food the canteen can sell. Choose what is sold each day on the
+        <a th:href="@{/admin/daily-menu}">Daily menu</a> page. Items that were on a menu or in an order cannot be deleted
+        (deactivate them instead), so past orders stay intact.</p>
+
+    <p th:if="${draftCount > 0}" class="alert alert-info">
+        <span th:text="${draftCount} + ' item(s) are drafts'">3 items are drafts</span>: they have no default price yet, or their name
+        must be checked against the printed menu. A draft can still be sold once you enter a price on the daily menu,
+        but an item whose name needs confirmation cannot be sold until you edit it and clear that tick.
+        <a th:href="@{/admin/menu-items(show='drafts')}">Show drafts only</a>
+    </p>
+
+    <form th:action="@{/admin/menu-items}" method="get" class="form-row">
+        <div class="field">
+            <label for="category">Category</label>
+            <select id="category" name="category">
+                <option value="">All categories</option>
+                <option th:each="c : ${categories}" th:value="${c}" th:selected="${c == selectedCategory}"
+                        th:text="${c == 'Breakfast'} ? 'Breakfast / Tiffins' : ${c}">Snacks</option>
+            </select>
+        </div>
+        <div class="field">
+            <label for="show">Show</label>
+            <select id="show" name="show">
+                <option value="">All items</option>
+                <option value="drafts" th:selected="${show == 'drafts'}">Drafts only</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-secondary">Filter</button>
+        <a class="btn" th:href="@{/admin/menu-items/new}">Add food item</a>
+    </form>
+
+    <p th:if="${totalCount == 0}" class="muted">No food items yet.</p>
+    <p th:if="${totalCount > 0 and items.isEmpty()}" class="muted">No items match this filter.</p>
+    <div class="table-wrap" th:unless="${items.isEmpty()}">
+        <table class="stack">
+            <thead><tr><th>Name</th><th>Category</th><th class="num">Default price</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+            <tr th:each="item : ${items}">
+                <td data-label="Name" th:with="img=${@photos.urlFor(item.imageUrl, item.name)}">
+                    <div class="item-cell">
+                        <img class="thumb" th:if="${img}" th:src="${img}" alt="" loading="lazy">
+                        <div class="thumb img-placeholder" th:unless="${img}" aria-hidden="true">No photo</div>
+                        <div>
+                            <span th:text="${item.name}">Idly</span>
+                            <div class="small muted" th:if="${item.description}" th:text="${item.description}"></div>
+                        </div>
+                    </div>
+                </td>
+                <td data-label="Category" th:text="${item.categoryLabel}">Breakfast / Tiffins</td>
+                <td class="num" data-label="Default price">
+                    <span th:if="${item.defaultPrice != null}" th:text="${@fmt.money(item.defaultPrice)}">₹30.00</span>
+                    <span th:if="${item.defaultPrice == null}" class="muted">Not set</span>
+                </td>
+                <td data-label="Status">
+                    <span class="status" th:if="${item.active}">Active</span>
+                    <span class="status status-inactive" th:unless="${item.active}">Inactive</span>
+                    <div class="small status-text-warn" th:if="${item.nameNeedsConfirmation}">Name needs confirmation</div>
+                </td>
+                <td data-label="Action">
+                    <div class="actions">
+                        <a th:href="@{/admin/menu-items/{id}/edit(id=${item.id})}">Edit</a>
+                        <form th:action="@{/admin/menu-items/{id}/active(id=${item.id})}" method="post">
+                            <input type="hidden" name="active" th:value="${!item.active}">
+                            <button type="submit" class="link-button" th:text="${item.active} ? 'Deactivate' : 'Activate'">Deactivate</button>
+                        </form>
+                        <form th:unless="${usedIds.contains(item.id)}" th:action="@{/admin/menu-items/{id}/delete(id=${item.id})}"
+                              method="post" th:attr="data-confirm='Delete ' + ${item.name} + ' permanently?'">
+                            <button type="submit" class="link-button">Delete</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

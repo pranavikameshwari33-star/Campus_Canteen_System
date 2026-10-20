@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Log in')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container narrow">
+    <h1>Log in</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+    <div class="alert alert-error" role="alert" th:if="${param.error}">Incorrect college ID or password, or the account has been disabled by the canteen.</div>
+    <div class="alert alert-error" role="alert" th:if="${param.unavailable}">Login is not possible right now because the database cannot be reached. Please try again in a minute.</div>
+    <div class="alert alert-success" role="status" th:if="${param.logout}">You have been logged out.</div>
+
+    <form th:action="@{/login}" method="post">
+        <input type="hidden" name="source" value="customer">
+        <div class="field">
+            <label for="collegeId">Roll number or faculty ID</label>
+            <input type="text" id="collegeId" name="collegeId" required autocomplete="username" autofocus>
+        </div>
+        <div class="field">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn" data-loading="Logging in...">Log in</button>
+    </form>
+
+    <p style="margin-top: 20px">New here? <a th:href="@{/register}">Create an account</a></p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

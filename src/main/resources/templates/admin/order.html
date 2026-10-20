@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Order details')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container" th:with="s=${order.orderStatus.name()}, amount=${@fmt.money(order.totalAmount)}">
+    <h1 th:text="'Order ' + ${order.orderNumber}">Order</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+
+    <div class="token-box" th:if="${order.tokenNumber != null}">
+        <div class="small muted">Token</div>
+        <div class="token" th:text="${order.tokenDisplay}">007</div>
+    </div>
+
+    <div class="table-wrap narrow">
+        <table>
+            <tbody>
+            <tr><th>Status</th><td><span th:class="${@fmt.statusClass(order.orderStatus)}" th:text="${order.orderStatus.label}"></span></td></tr>
+            <tr><th>Payment</th><td>
+                <span th:if="${order.paymentMethod}" th:text="${order.paymentMethod.label} + ' - '"></span>
+                <span th:class="${@fmt.statusClass(order.paymentStatus)}" th:text="${order.paymentStatus.label}"></span>
+                <span th:if="${order.paymentConfirmedBy}" class="small muted"
+                      th:text="' (by ' + ${order.paymentConfirmedBy} + ', ' + ${@fmt.dateTime(order.paymentConfirmedAt)} + ')'"></span>
+            </td></tr>
+            <tr><th>Customer</th><td th:text="${order.customerName} + ' (' + ${order.collegeId} + ')'"></td></tr>
+            <tr><th>Account type</th><td th:text="${order.role.label}"></td></tr>
+            <tr><th>Meal</th><td th:text="${order.mealSessionName}"></td></tr>
+            <tr><th>Placed</th><td th:text="${@fmt.dateTime(order.createdAt)}"></td></tr>
+            <tr th:if="${order.queueEnteredAt}"><th>Entered queue</th><td th:text="${@fmt.dateTime(order.queueEnteredAt)}"></td></tr>
+            <tr th:if="${order.completedAt}"><th>Collected</th>
+                <td th:text="${@fmt.dateTime(order.completedAt)} + ' (marked by ' + ${order.completedBy} + ')'"></td></tr>
+            <tr th:if="${order.statusNote}"><th>Note</th><td th:text="${order.statusNote}"></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2>Items</h2>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Item</th><th class="num">Price</th><th class="num">Qty</th><th class="num">Subtotal</th></tr></thead>
+            <tbody>
+            <tr th:each="i : ${order.items}">
+                <td th:text="${i.itemName}"></td>
+                <td class="num" th:text="${@fmt.money(i.unitPrice)}"></td>
+                <td class="num" th:text="${i.quantity}"></td>
+                <td class="num" th:text="${@fmt.money(i.subtotal)}"></td>
+            </tr>
+            <tr class="total"><td colspan="3">Total</td><td class="num" th:text="${@fmt.money(order.totalAmount)}"></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2>Actions</h2>
+    <div class="actions" style="margin-bottom: 12px"
+         th:with="p=${order.paymentStatus.name()}, qrOpen=${order.orderStatus.inQueue and (p == 'QR_PAYMENT_PENDING' or p == 'QR_PROOF_SUBMITTED')}">
+        <form th:if="${qrOpen}" th:action="@{/admin/orders/{id}/verify(id=${order.id})}" method="post"
+              th:attr="data-confirm='Have you checked that ' + ${amount} + ' arrived in the canteen UPI account?'">
+            <input type="hidden" name="back" value="order">
+            <button type="submit" class="btn">Verify QR payment</button>
+        </form>
+        <form th:if="${order.orderStatus.inQueue and p == 'CASH_DUE'}" th:action="@{/admin/orders/{id}/cash(id=${order.id})}" method="post"
+              th:attr="data-confirm='Received ' + ${amount} + ' in cash?'">
+            <input type="hidden" name="back" value="order">
+            <button type="submit" class="btn btn-secondary">Cash received</button>
+        </form>
+        <form th:if="${s == 'QUEUED'}" th:action="@{/admin/orders/{id}/status(id=${order.id})}" method="post">
+            <input type="hidden" name="status" value="PREPARING"><input type="hidden" name="back" value="order">
+            <button type="submit" class="btn btn-secondary">Start preparing</button>
+        </form>
+        <form th:if="${s == 'QUEUED' or s == 'PREPARING'}" th:action="@{/admin/orders/{id}/status(id=${order.id})}" method="post">
+            <input type="hidden" name="status" value="READY"><input type="hidden" name="back" value="order">
+            <button type="submit" class="btn btn-secondary">Mark ready</button>
+        </form>
+        <form th:if="${s == 'READY' and order.paymentStatus.paid}" th:action="@{/admin/orders/{id}/status(id=${order.id})}" method="post"
+              data-confirm="Confirm that this order has been collected?">
+            <input type="hidden" name="status" value="COMPLETED"><input type="hidden" name="back" value="order">
+            <button type="submit" class="btn">Order taken</button>
+        </form>
+        <span th:if="${s == 'READY' and !order.paymentStatus.paid}" class="small status-text-warn">
+            Record the cash or verify the QR payment before marking the order as taken.</span>
+    </div>
+    <p th:if="${order.orderStatus.finished}" class="muted">This order is finished. No further actions are available.</p>
+
+    <form th:if="${order.orderStatus.inQueue and (order.paymentStatus.name() == 'QR_PAYMENT_PENDING' or order.paymentStatus.name() == 'QR_PROOF_SUBMITTED')}"
+          th:action="@{/admin/orders/{id}/reject(id=${order.id})}" method="post"
+          class="narrow" data-confirm="Reject this payment? The order will be removed from the queue.">
+        <input type="hidden" name="back" value="order">
+        <div class="field">
+            <label for="rejectReason">Reason for rejecting the payment</label>
+            <input type="text" id="rejectReason" name="reason" maxlength="200" required>
+        </div>
+        <button type="submit" class="btn btn-danger">Reject payment</button>
+    </form>
+
+    <form th:if="${order.orderStatus.inQueue}" th:action="@{/admin/orders/{id}/cancel(id=${order.id})}" method="post"
+          class="narrow" data-confirm="Cancel this order? It will be removed from the queue.">
+        <div class="field">
+            <label for="cancelReason">Cancel order - reason</label>
+            <input type="text" id="cancelReason" name="reason" maxlength="200" required placeholder="e.g. Not collected before closing">
+            <div class="hint">Stock is returned if preparation had not started. Handle any refund at the counter.</div>
+        </div>
+        <button type="submit" class="btn btn-danger">Cancel order</button>
+    </form>
+
+    <h2>Payment</h2>
+    <p th:if="${payment == null}" class="muted">No payment record.</p>
+    <div th:if="${payment != null}">
+        <p>Status: <span th:class="${@fmt.statusClass(payment.status)}" th:text="${payment.status.label}"></span>
+            <span th:if="${payment.verifiedBy}" th:text="' by ' + ${payment.verifiedBy} + ' at ' + ${@fmt.dateTime(payment.verifiedAt)}"></span></p>
+        <p>Amount: <strong th:text="${@fmt.money(payment.amount)}"></strong> by
+            <span th:text="${payment.paymentMethod != null} ? ${payment.paymentMethod.label} : 'UPI'">Cash at pickup</span>.
+            <span th:if="${payment.paymentMethod == null or payment.paymentMethod.name() == 'QR'}">
+                UPI transaction ID: <span th:text="${payment.transactionRef ?: 'not given'}"></span></span></p>
+        <p th:if="${payment.rejectionReason}" th:text="'Rejection reason: ' + ${payment.rejectionReason}"></p>
+        <a th:if="${payment.proofUploaded}" th:href="@{/files/payment-proof/{id}(id=${order.id})}" target="_blank" rel="noopener">
+            <img class="proof-full" th:src="@{/files/payment-proof/{id}(id=${order.id})}" alt="Payment screenshot">
+        </a>
+        <p th:if="${!payment.proofUploaded and payment.paymentMethod != null and payment.paymentMethod.name() == 'QR'}" class="muted">
+            The customer has not sent a payment screenshot.</p>
+    </div>
+
+    <h2>History</h2>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Time</th><th>Status</th><th>By</th><th>Note</th></tr></thead>
+            <tbody>
+            <tr th:each="h : ${order.statusHistory}">
+                <td th:text="${@fmt.dateTime(h.changedAt)}"></td>
+                <td th:text="${h.status.label}"></td>
+                <td th:text="${h.changedBy}"></td>
+                <td th:text="${h.note}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p><a th:href="@{/admin/queue}">Back to queue</a></p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

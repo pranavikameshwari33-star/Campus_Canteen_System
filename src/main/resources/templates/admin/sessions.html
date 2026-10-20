@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Meal timings')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container">
+    <h1>Meal timings</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+    <p class="muted">The customer menu changes automatically with the time (India time). Customers can order only while a
+        session is open <strong>and</strong> the canteen is open
+        (<span th:text="${canteen.openingHours}">07:30 - 18:00</span>, set in <a th:href="@{/admin/settings}">Settings</a>).
+        A session opens at its start time and closes exactly at its end time, when the next one can begin.
+        Active sessions must not overlap. Chinese food can only be sold in Lunch and Snacks sessions.</p>
+
+    <p th:if="${sessions.isEmpty()}" class="muted">No meal sessions yet. Add one below.</p>
+    <div class="table-wrap" th:unless="${sessions.isEmpty()}">
+        <table class="stack">
+            <thead><tr><th>Session</th><th>Type</th><th>Ordering open</th><th>Food sold</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+            <tr th:each="s : ${sessions}">
+                <td data-label="Session" th:text="${s.name}">Lunch</td>
+                <td data-label="Type" th:text="${s.type.label}">Lunch</td>
+                <td data-label="Ordering open" th:text="${s.timeRange}">12:00 - 15:00</td>
+                <td data-label="Food sold" th:text="${#strings.listJoin(s.effectiveCategories, ', ')}">Lunch, Chinese</td>
+                <td data-label="Status">
+                    <span class="status" th:if="${s.active}">Active</span>
+                    <span class="status status-inactive" th:unless="${s.active}">Inactive</span>
+                </td>
+                <td data-label="Action">
+                    <div class="actions">
+                        <a th:href="@{/admin/sessions/{id}/edit(id=${s.id})}">Edit</a>
+                        <form th:action="@{/admin/sessions/{id}/active(id=${s.id})}" method="post">
+                            <input type="hidden" name="active" th:value="${!s.active}">
+                            <button type="submit" class="link-button" th:text="${s.active} ? 'Deactivate' : 'Activate'">Deactivate</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2 th:text="${form.id == null or form.id.isEmpty()} ? 'Add a meal session' : 'Edit ' + ${form.name}">Add a meal session</h2>
+    <form th:action="@{/admin/sessions}" th:object="${form}" method="post" class="narrow" novalidate>
+        <input type="hidden" th:field="*{id}">
+        <div class="form-row">
+            <div class="field">
+                <label for="name">Name</label>
+                <input type="text" th:field="*{name}" maxlength="40" placeholder="e.g. Breakfast" required>
+                <div class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+            </div>
+            <div class="field">
+                <label for="type">Type</label>
+                <select th:field="*{type}">
+                    <option th:each="t : ${types}" th:value="${t}" th:text="${t.label}">Lunch</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="field">
+                <label for="startTime">Opens at</label>
+                <input type="time" th:field="*{startTime}" required>
+                <div class="field-error" th:if="${#fields.hasErrors('startTime')}" th:errors="*{startTime}"></div>
+            </div>
+            <div class="field">
+                <label for="endTime">Closes at</label>
+                <input type="time" th:field="*{endTime}" required>
+                <div class="field-error" th:if="${#fields.hasErrors('endTime')}" th:errors="*{endTime}"></div>
+            </div>
+        </div>
+        <fieldset class="field">
+            <legend>Food categories sold in this session</legend>
+            <label class="check" th:each="c : ${categories}">
+                <input type="checkbox" th:field="*{allowedCategories}" th:value="${c}">
+                <span th:text="${c == 'Breakfast'} ? 'Breakfast / Tiffins' : ${c}">Lunch</span>
+            </label>
+            <div class="hint">Chinese is refused for Breakfast and Other sessions.</div>
+        </fieldset>
+        <div class="field">
+            <label class="check"><input type="checkbox" th:field="*{active}"> Active</label>
+        </div>
+        <div class="actions">
+            <button type="submit" class="btn">Save</button>
+            <a class="btn btn-secondary" th:href="@{/admin/sessions}" th:if="${form.id != null and !form.id.isEmpty()}">Cancel</a>
+        </div>
+    </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

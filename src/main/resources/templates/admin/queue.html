@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Queue')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container">
+    <div data-refresh="30"></div>
+    <h1>Order queue</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+    <p class="muted">First come, first served: orders are listed in the order customers placed them (when they chose Cash or
+        QR Code). Students and faculty are treated the same. Collected orders leave the queue automatically.
+        This page refreshes every 30 seconds.</p>
+
+    <div class="stats" th:unless="${queue.isEmpty()}">
+        <div class="stat"><div class="value" th:text="${queue.?[orderStatus.name() == 'QUEUED'].size()}">0</div><div class="label">Queued</div></div>
+        <div class="stat"><div class="value" th:text="${queue.?[orderStatus.name() == 'PREPARING'].size()}">0</div><div class="label">Preparing</div></div>
+        <div class="stat"><div class="value" th:text="${queue.?[orderStatus.name() == 'READY'].size()}">0</div><div class="label">Ready</div></div>
+        <div class="stat"><div class="value" th:text="${queue.?[paymentStatus.name() == 'CASH_DUE'].size()}">0</div><div class="label">Cash due</div></div>
+        <a class="stat" th:href="@{/admin/payments}"><div class="value"
+             th:text="${queue.?[paymentStatus.name() == 'QR_PAYMENT_PENDING' or paymentStatus.name() == 'QR_PROOF_SUBMITTED'].size()}">0</div>
+            <div class="label">QR payments to check</div></a>
+    </div>
+
+    <p th:if="${queue.isEmpty()}">The queue is empty.</p>
+
+    <div class="table-wrap" th:unless="${queue.isEmpty()}">
+        <table class="stack">
+            <thead>
+            <tr><th>#</th><th>Token</th><th>Customer</th><th>Items</th><th class="num">Total</th>
+                <th>Payment</th><th>Status</th><th>In queue since</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="o, st : ${queue}" th:with="s=${o.orderStatus.name()}, p=${o.paymentStatus.name()}, amount=${@fmt.money(o.totalAmount)},
+                    qrOpen=${p == 'QR_PAYMENT_PENDING' or p == 'QR_PROOF_SUBMITTED' or p == 'PENDING'}">
+                <td data-label="#" th:text="${st.count}">1</td>
+                <td data-label="Token"><strong class="token" style="font-size: 20px" th:text="${o.tokenDisplay}">001</strong></td>
+                <td data-label="Customer">
+                    <span th:text="${o.customerName}">Name</span>
+                    <div class="small muted" th:text="${o.collegeId}">ID</div>
+                </td>
+                <td data-label="Items"><div th:each="i : ${o.items}" th:text="${i.quantity} + ' x ' + ${i.itemName}">2 x Dosa</div></td>
+                <td data-label="Total" class="num"><strong th:text="${@fmt.money(o.totalAmount)}">₹80.00</strong></td>
+                <td data-label="Payment">
+                    <div th:text="${o.paymentMethod != null} ? ${o.paymentMethod.label} : 'UPI'">Cash at pickup</div>
+                    <span th:class="${@fmt.statusClass(o.paymentStatus)}" th:text="${o.paymentStatus.label}">Cash due at pickup</span>
+                    <div class="small" th:if="${p == 'QR_PROOF_SUBMITTED'}">
+                        <a th:href="@{/files/payment-proof/{id}(id=${o.id})}" target="_blank" rel="noopener">View screenshot</a></div>
+                </td>
+                <td data-label="Status"><span th:class="${@fmt.statusClass(o.orderStatus)}" th:text="${o.orderStatus.label}">In queue</span></td>
+                <td data-label="In queue since" th:text="${@fmt.time(o.queueEnteredAt)}">12:06 PM</td>
+                <td data-label="Action">
+                    <div class="actions">
+                        <form th:if="${s == 'QUEUED'}" th:action="@{/admin/orders/{id}/status(id=${o.id})}" method="post">
+                            <input type="hidden" name="status" value="PREPARING">
+                            <button type="submit" class="btn btn-secondary">Start preparing</button>
+                        </form>
+                        <form th:if="${s == 'QUEUED' or s == 'PREPARING'}" th:action="@{/admin/orders/{id}/status(id=${o.id})}" method="post">
+                            <input type="hidden" name="status" value="READY">
+                            <button type="submit" class="btn btn-secondary">Mark ready</button>
+                        </form>
+
+                        <form th:if="${s == 'READY' and p == 'CASH_DUE'}" th:action="@{/admin/orders/{id}/cash-and-taken(id=${o.id})}" method="post"
+                              th:attr="data-confirm='Received ' + ${amount} + ' in cash and handed over token ' + ${o.tokenDisplay} + '?'">
+                            <button type="submit" class="btn">Cash received &amp; order taken</button>
+                        </form>
+                        <form th:if="${s != 'READY' and p == 'CASH_DUE'}" th:action="@{/admin/orders/{id}/cash(id=${o.id})}" method="post"
+                              th:attr="data-confirm='Received ' + ${amount} + ' in cash for token ' + ${o.tokenDisplay} + '?'">
+                            <button type="submit" class="btn btn-secondary">Cash received</button>
+                        </form>
+                        <form th:if="${qrOpen}" th:action="@{/admin/orders/{id}/verify(id=${o.id})}" method="post"
+                              th:attr="data-confirm='Have you checked that ' + ${amount} + ' arrived in the canteen UPI account?'">
+                            <input type="hidden" name="back" value="queue">
+                            <button type="submit" class="btn btn-secondary">Verify QR payment</button>
+                        </form>
+
+                        <form th:if="${s == 'READY' and o.paymentStatus.paid}" th:action="@{/admin/orders/{id}/status(id=${o.id})}" method="post"
+                              th:attr="data-confirm='Confirm that token ' + ${o.tokenDisplay} + ' has been collected?'">
+                            <input type="hidden" name="status" value="COMPLETED">
+                            <button type="submit" class="btn">Order taken</button>
+                        </form>
+                        <span th:if="${s == 'READY' and qrOpen}" class="small status-text-warn">Verify the payment before handing over.</span>
+                        <a th:href="@{/admin/orders/{id}(id=${o.id})}">Details</a>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

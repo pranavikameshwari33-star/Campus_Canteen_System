@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Checkout')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container" th:with="qrAvailable=${current.canteen.qrPaymentAvailable}">
+    <h1>Checkout</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+
+    <h2>Your order</h2>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Item</th><th class="num">Price</th><th class="num">Qty</th><th class="num">Subtotal</th></tr></thead>
+            <tbody>
+            <tr th:each="line : ${cartView.lines}">
+                <td th:text="${line.name}">Dosa</td>
+                <td class="num" th:text="${@fmt.money(line.unitPrice)}">₹40.00</td>
+                <td class="num" th:text="${line.quantity}">2</td>
+                <td class="num" th:text="${@fmt.money(line.subtotal)}">₹80.00</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <p><a th:href="@{/cart}">Change order</a></p>
+
+    <div class="checkout-total">
+        <span>Total to pay</span>
+        <strong th:text="${@fmt.money(cartView.total)}">₹80.00</strong>
+    </div>
+
+    <h2>Choose how to pay</h2>
+    <p class="muted">Your order is placed and added to the queue as soon as you choose. You will get your pickup token straight away.</p>
+
+    <div class="pay-options">
+        <form th:action="@{/checkout}" method="post" class="pay-option">
+            <input type="hidden" name="checkoutKey" th:value="${checkoutKey}">
+            <input type="hidden" name="paymentMethod" value="CASH">
+            <h3>Cash</h3>
+            <p>Pay <strong th:text="${@fmt.money(cartView.total)}">₹80.00</strong> in cash at the counter when you collect your food.</p>
+            <button type="submit" class="btn" data-loading="Placing order...">Pay by cash</button>
+        </form>
+
+        <form th:action="@{/checkout}" method="post" class="pay-option">
+            <input type="hidden" name="checkoutKey" th:value="${checkoutKey}">
+            <input type="hidden" name="paymentMethod" value="QR">
+            <h3>QR Code</h3>
+            <p th:if="${qrAvailable}">Pay <strong th:text="${@fmt.money(cartView.total)}">₹80.00</strong> now with any UPI app.
+                The QR code is shown on the next page.</p>
+            <p th:unless="${qrAvailable}" class="muted">QR payment is not available yet. Please choose Cash.</p>
+            <button type="submit" class="btn" th:disabled="${!qrAvailable}" data-loading="Placing order...">Pay by QR code</button>
+        </form>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

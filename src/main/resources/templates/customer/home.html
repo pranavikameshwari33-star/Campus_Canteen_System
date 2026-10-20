@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Home')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container">
+    <h1 th:text="'Welcome, ' + ${currentUser.name}">Welcome</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+
+    <div class="panel">
+        <h2>Ordering now</h2>
+        <div th:if="${current.orderingOpen}">
+            <p><strong th:text="${current.openSession.name}">Lunch</strong> orders are open until
+                <span th:text="${current.ordersCloseAt}">14:30</span>.</p>
+            <div class="actions">
+                <a class="btn" th:href="@{/menu}">View menu</a>
+                <a class="btn btn-secondary" th:href="@{/cart}" th:if="${cartCount > 0}"
+                   th:text="'Cart (' + ${cartCount} + ' items)'">Cart</a>
+            </div>
+        </div>
+        <div th:if="${!current.orderingOpen and current.openSession != null}">
+            <p>The menu for this meal session (<span th:text="${current.openSession.name}">Lunch</span>) has not been published yet. Please check again shortly.</p>
+        </div>
+        <div th:if="${current.openSession == null}">
+            <p>Ordering is closed right now.</p>
+            <p class="muted" th:unless="${current.sessions.isEmpty()}">
+                Ordering hours:
+                <span th:each="s, st : ${current.sessions}"
+                      th:text="${s.name} + ' ' + ${s.timeRange} + (${st.last} ? '' : '; ')">Lunch 12:00 - 14:30</span>
+            </p>
+        </div>
+    </div>
+
+    <h2>Your active orders</h2>
+    <p th:if="${activeOrders.isEmpty()}" class="muted">You have no active orders.</p>
+    <div class="table-wrap" th:unless="${activeOrders.isEmpty()}">
+        <table>
+            <thead><tr><th>Token</th><th>Order</th><th>Status</th><th class="num">Total</th><th></th></tr></thead>
+            <tbody>
+            <tr th:each="o : ${activeOrders}">
+                <td><strong th:text="${o.tokenDisplay ?: '-'}">007</strong></td>
+                <td>
+                    <span th:text="${o.orderNumber}">261013-ABCDE</span>
+                    <div class="small muted" th:text="${o.mealSessionName} + ', ' + ${@fmt.dateTime(o.createdAt)}"></div>
+                </td>
+                <td><span th:class="${@fmt.statusClass(o.orderStatus)}" th:text="${o.orderStatus.label}">In queue</span></td>
+                <td class="num" th:text="${@fmt.money(o.totalAmount)}">₹0</td>
+                <td><a th:href="@{/orders/{id}(id=${o.id})}">View</a></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div th:unless="${recentFinished.isEmpty()}">
+        <h2>Recent orders</h2>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Order</th><th>Status</th><th class="num">Total</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="o : ${recentFinished}">
+                    <td th:text="${o.orderNumber}">261013-ABCDE</td>
+                    <td><span th:class="${@fmt.statusClass(o.orderStatus)}" th:text="${o.orderStatus.label}">Collected</span></td>
+                    <td class="num" th:text="${@fmt.money(o.totalAmount)}">₹0</td>
+                    <td><a th:href="@{/orders/{id}(id=${o.id})}">View</a></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p><a th:href="@{/orders}">See all orders</a></p>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

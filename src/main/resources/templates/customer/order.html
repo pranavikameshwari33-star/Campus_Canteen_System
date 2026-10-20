@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Order')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container" th:with="s=${order.orderStatus.name()}">
+    <div th:attr="data-refresh=${order.orderStatus.finished} ? null : 30"></div>
+
+    <h1 th:text="'Order ' + ${order.orderNumber}">Order</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+
+    <div class="token-box" th:if="${order.tokenNumber != null}">
+        <div class="small muted">Your pickup token</div>
+        <div class="token" th:text="${order.tokenDisplay}">007</div>
+    </div>
+
+    <p>Order status: <span th:class="${@fmt.statusClass(order.orderStatus)}" th:text="${order.orderStatus.label}">In queue</span></p>
+    <p th:if="${order.paymentStatus != null}">Payment:
+        <span th:text="${order.paymentMethod != null} ? ${order.paymentMethod.label} + ' - ' : ''">Cash at pickup - </span>
+        <span th:class="${@fmt.statusClass(order.paymentStatus)}" th:text="${order.paymentStatus.label}">Cash due at pickup</span></p>
+
+    <div class="alert alert-info" th:if="${order.paymentStatus != null and order.paymentStatus.name() == 'CASH_DUE' and order.orderStatus.inQueue}">
+        Please pay <strong th:text="${@fmt.money(order.totalAmount)}">₹80.00</strong> in cash at the counter when you collect your food.
+    </div>
+    <div class="alert alert-info" th:if="${order.paymentStatus != null and order.paymentStatus.name() == 'QR_PAYMENT_PENDING' and order.orderStatus.inQueue}">
+        Your order is in the queue, but we have not received your QR payment yet.
+        <a th:href="@{/orders/{id}/pay(id=${order.id})}">Pay by QR code and send the screenshot</a>.
+    </div>
+    <div class="alert alert-info" th:if="${order.paymentStatus != null and order.paymentStatus.name() == 'QR_PROOF_SUBMITTED' and order.orderStatus.inQueue}">
+        Your payment screenshot has been sent. Canteen staff will check it. Your order keeps its place in the queue.
+        <a th:href="@{/orders/{id}/pay(id=${order.id})}">Send a different screenshot</a>
+    </div>
+    <div class="alert alert-info" th:if="${s == 'AWAITING_VERIFICATION'}">
+        Your payment proof has been sent. Canteen staff will verify it shortly.
+    </div>
+    <div class="alert alert-info" th:if="${s == 'QUEUED' or s == 'PREPARING'}">
+        <span th:text="${s == 'QUEUED'} ? 'Your order is in the queue.' : 'Your food is being prepared.'"></span>
+        <span th:text="${ordersAhead == 0} ? 'Your order is next.' : 'Orders ahead of you: ' + ${ordersAhead} + '.'"></span>
+    </div>
+    <div class="alert alert-success" th:if="${s == 'READY'}">
+        Your order is ready. Show token <strong th:text="${order.tokenDisplay}">007</strong> at the counter to collect it.
+    </div>
+    <div class="alert alert-info" th:if="${s == 'COMPLETED'}" th:text="'Collected on ' + ${@fmt.dateTime(order.completedAt)} + '.'"></div>
+    <div class="alert alert-error" th:if="${s == 'REJECTED'}">
+        Your QR payment could not be verified: <span th:text="${order.statusNote}">reason</span>.
+        This order has been removed from the queue and will not be prepared. If you believe this is a mistake, please contact the canteen counter.
+    </div>
+    <div class="alert alert-error" th:if="${s == 'CANCELLED'}">
+        This order was cancelled: <span th:text="${order.statusNote}">reason</span>.
+        Please contact the canteen counter about a refund.
+    </div>
+    <p class="small muted" th:unless="${order.orderStatus.finished}">This page refreshes automatically every 30 seconds.</p>
+
+    <h2>Items</h2>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Item</th><th class="num">Price</th><th class="num">Qty</th><th class="num">Subtotal</th></tr></thead>
+            <tbody>
+            <tr th:each="i : ${order.items}">
+                <td th:text="${i.itemName}">Dosa</td>
+                <td class="num" th:text="${@fmt.money(i.unitPrice)}">₹40.00</td>
+                <td class="num" th:text="${i.quantity}">2</td>
+                <td class="num" th:text="${@fmt.money(i.subtotal)}">₹80.00</td>
+            </tr>
+            <tr class="total"><td colspan="3">Total</td><td class="num" th:text="${@fmt.money(order.totalAmount)}">₹80.00</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <p class="muted" th:text="${order.mealSessionName} + ' - placed ' + ${@fmt.dateTime(order.createdAt)}"></p>
+
+    <h2>Payment</h2>
+    <p th:if="${payment == null}" class="muted">No payment record.</p>
+    <div th:if="${payment != null}">
+        <p>Status: <span th:class="${@fmt.statusClass(payment.status)}" th:text="${payment.status.label}">Pending</span>
+            <span th:if="${payment.transactionRef}" th:text="' - UPI transaction ID ' + ${payment.transactionRef}"></span></p>
+        <p th:if="${payment.proofUploaded}"><a th:href="@{${payment.proofImageUrl}}" target="_blank" rel="noopener">View your payment screenshot</a></p>
+    </div>
+
+    <h2>History</h2>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Time</th><th>Status</th><th>Note</th></tr></thead>
+            <tbody>
+            <tr th:each="h : ${order.statusHistory}">
+                <td th:text="${@fmt.dateTime(h.changedAt)}">time</td>
+                <td th:text="${h.status.label}">status</td>
+                <td th:text="${h.note}">note</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p><a th:href="@{/orders}">Back to my orders</a></p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

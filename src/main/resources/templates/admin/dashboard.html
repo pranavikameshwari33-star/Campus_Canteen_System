@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Dashboard')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container">
+    <div data-refresh="60"></div>
+    <h1>Dashboard</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+
+    <div class="stats">
+        <a class="stat" th:href="@{/admin/payments}">
+            <div class="value" th:text="${qrToCheckCount}">0</div>
+            <div class="label">QR payments to check</div>
+        </a>
+        <a class="stat" th:href="@{/admin/payments}">
+            <div class="value" th:text="${cashDueCount}">0</div>
+            <div class="label">Cash due at pickup</div>
+        </a>
+        <a class="stat" th:href="@{/admin/queue}">
+            <div class="value" th:text="${queuedCount}">0</div>
+            <div class="label">Queued</div>
+        </a>
+        <a class="stat" th:href="@{/admin/queue}">
+            <div class="value" th:text="${preparingCount}">0</div>
+            <div class="label">Preparing</div>
+        </a>
+        <a class="stat" th:href="@{/admin/queue}">
+            <div class="value" th:text="${readyCount}">0</div>
+            <div class="label">Ready for pickup</div>
+        </a>
+        <a class="stat" th:href="@{/admin/reports}">
+            <div class="value" th:text="${report.completedOrders}">0</div>
+            <div class="label">Collected today</div>
+        </a>
+        <a class="stat" th:href="@{/admin/reports}">
+            <div class="value" th:text="${@fmt.money(report.completedRevenue)}">₹0</div>
+            <div class="label">Collected sales today</div>
+        </a>
+    </div>
+
+    <div class="panel">
+        <h2>Current meal session</h2>
+        <p th:if="${current.sessions.isEmpty()}">No meal timings are set up yet.
+            <a th:href="@{/admin/sessions}">Add meal timings</a> so customers can order.</p>
+        <div th:if="${current.openSession != null}">
+            <p><strong th:text="${current.openSession.name}">Lunch</strong>
+                is open (<span th:text="${current.openSession.timeRange}">12:00 - 14:30</span>).
+                <span th:if="${current.menu != null}">The menu is published and customers can order.</span></p>
+            <p th:if="${current.menu == null}" class="alert alert-error">
+                No menu is published for this session, so customers cannot order.
+                <a th:href="@{/admin/daily-menu(sessionId=${current.openSession.id})}">Publish the menu</a>
+            </p>
+        </div>
+        <p th:unless="${current.canteenOpen}">
+            The canteen is closed now (opening hours <span th:text="${current.canteen.openingHours}">07:30 - 18:00</span>).
+        </p>
+        <p th:if="${current.openSession == null and !current.sessions.isEmpty()}">
+            No session is open right now. Timings:
+            <span th:each="s, st : ${current.sessions}" th:text="${s.name} + ' ' + ${s.timeRange} + (${st.last} ? '' : '; ')"></span>
+        </p>
+        <p th:unless="${current.canteen.qrPaymentAvailable}" class="alert alert-error">
+            The payment QR code and UPI ID are not set, so customers can only pay by cash.
+            <a th:href="@{/admin/settings}">Add them in Settings</a> to offer QR payment.
+        </p>
+    </div>
+
+    <div class="panel" th:if="${noPriceCount > 0 or unconfirmedCount > 0 or !soldOut.isEmpty() or !runningLow.isEmpty()}">
+        <h2>Needs attention</h2>
+        <ul>
+            <li th:if="${unconfirmedCount > 0}">
+                <span th:text="${unconfirmedCount} + ' food item(s) have a name that needs confirmation.'"></span>
+                <a th:href="@{/admin/menu-items(show='drafts')}">Check them</a>
+            </li>
+            <li th:if="${noPriceCount > 0}">
+                <span th:text="${noPriceCount} + ' food item(s) have no default price (enter a price on the daily menu or the item).'"></span>
+                <a th:href="@{/admin/menu-items(show='drafts')}">View drafts</a>
+            </li>
+            <li th:unless="${soldOut.isEmpty()}">
+                Sold out on the current menu: <span th:text="${#strings.listJoin(soldOut, ', ')}">Idly</span>
+            </li>
+            <li th:unless="${runningLow.isEmpty()}">
+                Running low: <span th:text="${#strings.listJoin(runningLow, ', ')}">Poori (3 left)</span>
+            </li>
+        </ul>
+        <p th:if="${current.menu != null}" class="small"><a th:href="@{/admin/daily-menu(sessionId=${current.openSession.id})}">Update the current menu</a></p>
+    </div>
+
+    <h2>Next in queue</h2>
+    <p th:if="${nextOrders.isEmpty()}" class="muted">The queue is empty.</p>
+    <div class="table-wrap" th:unless="${nextOrders.isEmpty()}">
+        <table>
+            <thead><tr><th>Token</th><th>Customer</th><th>Items</th><th>Payment</th><th>Status</th></tr></thead>
+            <tbody>
+            <tr th:each="o : ${nextOrders}">
+                <td><strong th:text="${o.tokenDisplay}">001</strong></td>
+                <td th:text="${o.customerName}">Name</td>
+                <td><div th:each="i : ${o.items}" th:text="${i.quantity} + ' x ' + ${i.itemName}"></div></td>
+                <td><span th:class="${@fmt.statusClass(o.paymentStatus)}" th:text="${o.paymentStatus.label}"></span></td>
+                <td><span th:class="${@fmt.statusClass(o.orderStatus)}" th:text="${o.orderStatus.label}"></span></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <p><a th:href="@{/admin/queue}">Open full queue</a></p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

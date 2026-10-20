@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Accounts')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container">
+    <h1>Accounts</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+
+    <h2>Canteen administrators</h2>
+    <div class="table-wrap narrow">
+        <table>
+            <thead><tr><th>Administrator ID</th><th>Name</th><th>Since</th></tr></thead>
+            <tbody>
+            <tr th:each="a : ${admins}">
+                <td th:text="${a.collegeId}">CANTEENADMIN01</td>
+                <td th:text="${a.name}">Name</td>
+                <td th:text="${@fmt.dateTime(a.createdAt)}">date</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="alert alert-success" role="status" th:if="${newInvite}">
+        Invitation code: <strong class="invite-code" th:text="${newInvite.code}">ABCD-EFGH-JKLM-NPQR</strong><br>
+        Give this code to the new administrator. They register at <strong>/admin/register</strong>.
+        It works once and expires on <span th:text="${@fmt.dateTime(newInvite.expiresAt)}">date</span>.
+        Copy it now: it will not be shown again.
+    </div>
+    <form th:action="@{/admin/accounts/invite}" method="post" style="margin-bottom: 12px">
+        <button type="submit" class="btn btn-secondary">Create invitation code for a new administrator</button>
+    </form>
+    <div class="table-wrap" th:unless="${invites.isEmpty()}">
+        <table>
+            <thead><tr><th>Created</th><th>By</th><th>Status</th></tr></thead>
+            <tbody>
+            <tr th:each="i : ${invites}">
+                <td th:text="${@fmt.dateTime(i.createdAt)}">date</td>
+                <td th:text="${i.createdBy}">CANTEENADMIN01</td>
+                <td>
+                    <span th:if="${i.usedAt != null}" th:text="'Used by ' + ${i.usedBy} + ' on ' + ${@fmt.dateTime(i.usedAt)}">Used</span>
+                    <span th:if="${i.usedAt == null and i.isOpenAt(now)}" th:text="'Unused, valid until ' + ${@fmt.dateTime(i.expiresAt)}">Unused</span>
+                    <span th:if="${i.usedAt == null and !i.isOpenAt(now)}" class="muted">Expired</span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2>Student and faculty accounts</h2>
+    <p class="muted">People register themselves with their roll number or faculty ID. These IDs are checked for format and
+        duplicates only, not against an official college list. If an account looks wrong, disable it: the person can then no
+        longer log in or place orders, and their past orders are kept.</p>
+
+    <form th:action="@{/admin/accounts}" method="get" class="form-row">
+        <div class="field">
+            <label for="q">College ID starts with</label>
+            <input type="text" id="q" name="q" th:value="${q}" maxlength="30">
+        </div>
+        <button type="submit" class="btn btn-secondary">Search</button>
+        <a th:if="${!q.isEmpty()}" th:href="@{/admin/accounts}">Show all</a>
+    </form>
+
+    <p th:if="${accounts.isEmpty()}" class="muted">No accounts found.</p>
+    <div class="table-wrap" th:unless="${accounts.isEmpty()}">
+        <table>
+            <thead><tr><th>College ID</th><th>Name</th><th>Type</th><th>Department</th><th>Registered</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+            <tr th:each="u : ${accounts}">
+                <td th:text="${u.collegeId}">21CS101</td>
+                <td th:text="${u.name}">Name</td>
+                <td th:text="${u.role.label} + (${u.year != null} ? ', year ' + ${u.year} : '')">Student</td>
+                <td th:text="${u.department}">CSE</td>
+                <td th:text="${@fmt.dateTime(u.createdAt)}">date</td>
+                <td>
+                    <span class="status" th:if="${u.active}">Active</span>
+                    <span class="status status-inactive" th:unless="${u.active}">Disabled</span>
+                </td>
+                <td>
+                    <form th:action="@{/admin/accounts/{id}/active(id=${u.id})}" method="post"
+                          th:attr="data-confirm=${u.active} ? 'Disable account ' + ${u.collegeId} + '?' : null">
+                        <input type="hidden" name="active" th:value="${!u.active}">
+                        <input type="hidden" name="q" th:value="${q}">
+                        <button type="submit" class="link-button" th:text="${u.active} ? 'Disable' : 'Enable'">Disable</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <p class="small muted" th:if="${accounts.size() == 200}">Showing the 200 newest accounts. Search by college ID to find others.</p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Menu')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container">
+    <div th:if="${current.orderingOpen}">
+        <h1 th:text="${current.openSession.name} + ' menu'">Lunch menu</h1>
+        <p class="muted" th:text="'Orders open until ' + ${current.ordersCloseAt} + '. Prices include all charges.'"></p>
+    </div>
+    <h1 th:unless="${current.orderingOpen}">Menu</h1>
+
+    <div th:replace="~{fragments/layout :: messages}"></div>
+
+    <div th:unless="${current.orderingOpen}" class="alert alert-info">
+        <span th:unless="${current.canteenOpen}"
+              th:text="'The canteen is closed now. Opening hours: ' + ${current.canteen.openingHours} + '.'">The canteen is closed now.</span>
+        <span th:if="${current.canteenOpen and current.openSession == null}">Ordering is closed right now. No meal session is open.</span>
+        <span th:if="${current.openSession != null}"
+              th:text="'The menu for this meal session (' + ${current.openSession.name} + ') has not been published yet. Please check again shortly.'"></span>
+        <div th:unless="${current.sessions.isEmpty()}" style="margin-top: 6px">
+            Ordering hours:
+            <span th:each="s, st : ${current.sessions}"
+                  th:text="${s.name} + ' ' + ${s.timeRange} + (${st.last} ? '' : '; ')">Lunch 12:00 - 14:30</span>
+        </div>
+    </div>
+
+    <div th:if="${current.orderingOpen}">
+        <div class="actions" style="margin-bottom: 8px">
+            <a class="btn btn-secondary" th:href="@{/cart}" th:text="'View cart (' + ${cartCount} + ' items)'">View cart</a>
+            <a class="btn" th:href="@{/checkout}" th:if="${cartCount > 0}">Checkout</a>
+        </div>
+
+        <p th:if="${itemsByCategory.isEmpty()}" class="alert alert-info">No items are available on this menu right now.</p>
+
+        <section th:each="entry : ${itemsByCategory}" class="menu-section"
+                 th:classappend="'cat-' + ${#strings.toLowerCase(#strings.substringBefore(entry.key + ' ', ' '))}">
+            <h2 class="category-title" th:text="${entry.key}">Snacks</h2>
+            <ul class="menu-grid">
+                <li class="food-card" th:each="item : ${entry.value}" th:classappend="${item.orderable} ? '' : 'sold-out'"
+                    th:with="img=${@photos.urlFor(item.imageUrl, item.name)}">
+                    <div class="food-photo">
+                        <img th:if="${img}" th:src="${img}" th:alt="${item.name}" loading="lazy">
+                        <div class="img-placeholder" th:unless="${img}" aria-hidden="true">No photo</div>
+                        <span class="sold-out-tag" th:unless="${item.orderable}">Sold out</span>
+                    </div>
+                    <div class="food-body">
+                        <div class="food-head">
+                            <span class="name" th:text="${item.name}">Masala Dosa</span>
+                            <span class="price" th:text="${@fmt.money(item.priceForThatDay)}">₹40.00</span>
+                        </div>
+                        <div class="small muted" th:if="${item.description}" th:text="${item.description}">Description</div>
+                        <div class="small stock">
+                            <span th:if="${item.orderable}" th:text="${item.availableQuantity} + ' left'">12 left</span>
+                            <span class="in-cart" th:if="${cart.quantities[item.menuItemId] != null}"
+                                  th:text="${cart.quantities[item.menuItemId]} + ' in your cart'"></span>
+                        </div>
+                        <form th:if="${item.orderable}" th:action="@{/cart/add}" method="post" class="add-form">
+                            <input type="hidden" name="menuItemId" th:value="${item.menuItemId}">
+                            <input class="qty" type="number" name="quantity" value="1" min="1"
+                                   th:id="'q-' + ${item.menuItemId}"
+                                   th:max="${item.availableQuantity < 20 ? item.availableQuantity : 20}"
+                                   th:aria-label="'Quantity of ' + ${item.name}">
+                            <button type="submit" class="btn">Add to cart</button>
+                        </form>
+                    </div>
+                </li>
+            </ul>
+        </section>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Database unavailable')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container">
+    <h1>Database unavailable</h1>
+    <p>The canteen database cannot be reached right now, so this page could not be loaded and your last action
+        may not have been saved.</p>
+    <p>Please wait a minute and try again. Check "My orders" before placing an order again, so it is not placed twice.</p>
+    <p><a th:href="@{/}">Go to the start page</a></p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

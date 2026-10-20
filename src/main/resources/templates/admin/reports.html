@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Reports')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container">
+    <h1>Daily report</h1>
+
+    <form th:action="@{/admin/reports}" method="get" class="form-row">
+        <div class="field">
+            <label for="date">Date</label>
+            <input type="date" id="date" name="date" th:value="${date}">
+        </div>
+        <button type="submit" class="btn btn-secondary">Show</button>
+    </form>
+
+    <div class="table-wrap narrow">
+        <table>
+            <tbody>
+            <tr><th>Orders placed</th><td class="num" th:text="${report.totalOrders}">0</td></tr>
+            <tr><th>Collected</th><td class="num" th:text="${report.completedOrders}">0</td></tr>
+            <tr><th>Sales from collected orders</th><td class="num" th:text="${@fmt.money(report.completedRevenue)}">₹0</td></tr>
+            <tr><th>Still in the queue</th>
+                <td class="num" th:text="${report.inQueue} + ' (' + ${@fmt.money(report.inQueueAmount)} + ')'">0</td></tr>
+            <tr><th>Cash still due (in queue)</th>
+                <td class="num" th:text="${report.cashDueOrders} + ' (' + ${@fmt.money(report.cashDueAmount)} + ')'">0</td></tr>
+            <tr><th>QR payments not yet checked</th><td class="num" th:text="${report.qrToCheck}">0</td></tr>
+            <tr><th>Cash received</th><td class="num" th:text="${@fmt.money(report.cashReceived)}">₹0</td></tr>
+            <tr><th>QR payments verified</th><td class="num" th:text="${@fmt.money(report.qrReceived)}">₹0</td></tr>
+            <tr><th>Payment rejected</th><td class="num" th:text="${report.rejected}">0</td></tr>
+            <tr><th>Cancelled</th><td class="num" th:text="${report.cancelled}">0</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2>Items collected</h2>
+    <p th:if="${report.itemsSold.isEmpty()}" class="muted">No collected orders on this date.</p>
+    <div class="table-wrap narrow" th:unless="${report.itemsSold.isEmpty()}">
+        <table>
+            <thead><tr><th>Item</th><th class="num">Portions</th></tr></thead>
+            <tbody>
+            <tr th:each="e : ${report.itemsSold}">
+                <td th:text="${e.key}">Dosa</td>
+                <td class="num" th:text="${e.value}">10</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

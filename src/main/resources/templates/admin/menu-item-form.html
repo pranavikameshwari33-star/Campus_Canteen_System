@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Food item')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container narrow">
+    <h1 th:text="${form.id == null or form.id.isEmpty()} ? 'Add food item' : 'Edit food item'">Food item</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+
+    <form th:action="@{/admin/menu-items}" th:object="${form}" method="post" enctype="multipart/form-data" novalidate>
+        <input type="hidden" th:field="*{id}">
+        <div class="field">
+            <label for="name">Name</label>
+            <input type="text" th:field="*{name}" maxlength="60" required>
+            <div class="hint" th:if="${used}">Renaming changes the name on future menus only. Past orders keep the old name.</div>
+            <div class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+        </div>
+        <div class="field">
+            <label class="check"><input type="checkbox" th:field="*{nameNeedsConfirmation}"> Name needs confirmation</label>
+            <div class="hint">Ticked for names that were hard to read on the printed menu. Check the spelling,
+                correct it if needed, then untick this box. The item cannot be sold while it is ticked.</div>
+        </div>
+        <div class="form-row">
+            <div class="field">
+                <label for="category">Category</label>
+                <select th:field="*{category}">
+                    <option value="">Choose...</option>
+                    <option th:each="c : ${categories}" th:value="${c}"
+                            th:text="${c == 'Breakfast'} ? 'Breakfast / Tiffins' : ${c}">Snacks</option>
+                </select>
+                <div class="field-error" th:if="${#fields.hasErrors('category')}" th:errors="*{category}"></div>
+            </div>
+            <div class="field">
+                <label for="subcategory">Chinese section</label>
+                <select th:field="*{subcategory}">
+                    <option value="">None</option>
+                    <option th:each="s : ${subcategories}" th:value="${s}" th:text="${s}">Rice</option>
+                </select>
+                <div class="hint">Only used for Chinese items.</div>
+            </div>
+        </div>
+        <div class="field">
+            <label for="defaultPrice">Default price (₹, optional)</label>
+            <input type="number" th:field="*{defaultPrice}" min="0.01" max="10000" step="0.01">
+            <div class="hint">The usual price, filled in automatically on the daily menu. Leave empty if you do not know it yet;
+                you must then enter a price on the daily menu before the item can be sold.</div>
+            <div class="field-error" th:if="${#fields.hasErrors('defaultPrice')}" th:errors="*{defaultPrice}"></div>
+        </div>
+        <div class="field">
+            <label for="description">Description (optional)</label>
+            <textarea th:field="*{description}" maxlength="200"></textarea>
+            <div class="field-error" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></div>
+        </div>
+        <fieldset class="field"
+                  th:with="suggested=${@photos.suggestFor(form.name)}, shown=${@photos.urlFor(form.imageUrl, form.name)}, custom=${@photos.isCustom(form.imageUrl)}">
+            <legend>Photo</legend>
+            <div class="photo-pick">
+                <div class="photo-preview">
+                    <img id="photo-preview" th:src="${shown}" th:hidden="${shown == null}" alt="Selected photo">
+                    <div id="photo-preview-empty" class="img-placeholder" th:hidden="${shown != null}">No photo</div>
+                </div>
+                <div class="photo-controls">
+                    <label for="imageUrl">Choose a photo</label>
+                    <select th:field="*{imageUrl}" data-photo-select th:data-suggested="${suggested}">
+                        <option value="" th:text="${suggested != null} ? 'Automatic (photo for this name)' : 'Automatic (no photo for this name)'">Automatic</option>
+                        <option th:if="${custom}" th:value="${form.imageUrl}">Current photo (uploaded or link)</option>
+                        <option th:each="p : ${bundledPhotos}" th:value="${p.url()}" th:text="${p.label}">Idli</option>
+                    </select>
+                    <div class="field-error" th:if="${#fields.hasErrors('imageUrl')}" th:errors="*{imageUrl}"></div>
+                    <label for="photo" class="spaced">Or upload a photo</label>
+                    <input type="file" id="photo" name="photo" accept="image/jpeg,image/png"
+                           th:data-max-bytes="${maxImageBytes}" data-photo-upload>
+                    <div class="hint">JPEG or PNG, at most 5 MB.</div>
+                    <label for="photoLink" class="spaced">Or paste a photo link</label>
+                    <input type="url" th:field="*{photoLink}" maxlength="500" placeholder="https://...">
+                    <div class="field-error" th:if="${#fields.hasErrors('photoLink')}" th:errors="*{photoLink}"></div>
+                </div>
+            </div>
+            <div class="hint">"Automatic" uses the photo that comes with the website for this food name, if there is one.
+                An uploaded photo is used first, then a pasted link, then the choice in the list.</div>
+        </fieldset>
+        <div class="field">
+            <label class="check"><input type="checkbox" th:field="*{active}"> Active (can be added to daily menus)</label>
+        </div>
+        <div class="actions">
+            <button type="submit" class="btn">Save</button>
+            <a class="btn btn-secondary" th:href="@{/admin/menu-items}">Cancel</a>
+        </div>
+    </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

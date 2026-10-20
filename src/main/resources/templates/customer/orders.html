@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('My orders')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container">
+    <h1>My orders</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+
+    <div th:if="${orders.isEmpty()}">
+        <p>You have not placed any orders yet.</p>
+        <a class="btn" th:href="@{/menu}">Go to menu</a>
+    </div>
+
+    <div class="table-wrap" th:unless="${orders.isEmpty()}">
+        <table>
+            <thead>
+            <tr><th>Placed</th><th>Order</th><th class="hide-sm">Items</th><th>Token</th><th>Status</th><th class="hide-sm">Payment</th><th class="num">Total</th><th></th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="o : ${orders}">
+                <td th:text="${@fmt.dateTime(o.createdAt)}">13 Oct 2026, 12:10 PM</td>
+                <td>
+                    <span th:text="${o.orderNumber}">261013-ABCDE</span>
+                    <div class="small muted" th:text="${o.mealSessionName}">Lunch</div>
+                </td>
+                <td class="hide-sm">
+                    <div th:each="i : ${o.items}" th:text="${i.quantity} + ' x ' + ${i.itemName}">2 x Dosa</div>
+                </td>
+                <td th:text="${o.tokenDisplay ?: '-'}">007</td>
+                <td><span th:class="${@fmt.statusClass(o.orderStatus)}" th:text="${o.orderStatus.label}">In queue</span></td>
+                <td class="hide-sm"><span th:if="${o.paymentStatus}" th:class="${@fmt.statusClass(o.paymentStatus)}" th:text="${o.paymentStatus.label}">Cash due</span></td>
+                <td class="num" th:text="${@fmt.money(o.totalAmount)}">₹80.00</td>
+                <td><a th:href="@{/orders/{id}(id=${o.id})}">View</a></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Administrator registration')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container narrow">
+    <h1>Canteen administrator registration</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+
+    <div class="alert alert-info" th:if="${firstAdmin}">
+        No administrator exists yet. The account you create now becomes the first canteen administrator.
+        After that, new administrators need an invitation code from an existing administrator.
+    </div>
+    <div class="alert alert-info" th:unless="${firstAdmin}">
+        To register as an administrator you need a one-time invitation code. An existing administrator can create one on
+        the <strong>Accounts</strong> page. Codes are valid for 24 hours.
+    </div>
+    <div class="alert alert-info" th:if="${!firstAdmin and localInvitationCode}">
+        Local development: the invitation code set in <code>CANTEEN_ADMIN_INVITATION_CODE</code> is also accepted here.
+    </div>
+
+    <form th:action="@{/admin/register}" th:object="${form}" method="post" novalidate>
+        <div class="field" th:if="${!firstAdmin or setupCodeRequired}">
+            <label for="code" th:text="${firstAdmin} ? 'Setup code' : 'Invitation code'">Invitation code</label>
+            <input type="text" th:field="*{code}" maxlength="40" autocomplete="off" required>
+            <div class="hint" th:if="${firstAdmin}">The setup code set by whoever installed the system (CANTEEN_SETUP_CODE).</div>
+            <div class="hint" th:unless="${firstAdmin}">For example ABCD-EFGH-JKLM-NPQR.</div>
+            <div class="field-error" th:if="${#fields.hasErrors('code')}" th:errors="*{code}"></div>
+        </div>
+
+        <div class="field">
+            <label for="collegeId">Administrator ID</label>
+            <input type="text" th:field="*{collegeId}" maxlength="30" required autocomplete="username">
+            <div class="hint">You will log in with this ID, for example CANTEENADMIN02.</div>
+            <div class="field-error" th:if="${#fields.hasErrors('collegeId')}" th:errors="*{collegeId}"></div>
+        </div>
+
+        <div class="field">
+            <label for="name">Full name</label>
+            <input type="text" th:field="*{name}" maxlength="80" required>
+            <div class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+        </div>
+
+        <div class="field">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" minlength="8" maxlength="64" required autocomplete="new-password">
+            <div class="hint">At least 8 characters.</div>
+            <div class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
+        </div>
+
+        <div class="field">
+            <label for="confirmPassword">Confirm password</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" maxlength="64" required autocomplete="new-password">
+            <div class="field-error" th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}"></div>
+        </div>
+
+        <button type="submit" class="btn" data-loading="Creating account...">Create administrator account</button>
+    </form>
+
+    <p class="small muted" style="margin-top: 20px">Already registered? <a th:href="@{/admin/login}">Administrator login</a>.
+        Students and faculty should use the <a th:href="@{/register}">normal registration</a>.</p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Settings')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container narrow">
+    <h1>Canteen settings</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+
+    <h2>Payment QR code</h2>
+    <p class="muted">Customers scan this QR code at checkout to pay by UPI. Download your canteen's QR code
+        from your UPI or bank merchant app and upload it here.</p>
+    <div th:if="${canteen.paymentQrConfigured}" style="margin-bottom: 12px">
+        <img class="qr" th:src="@{/files/payment-qr}" alt="Current payment QR code">
+    </div>
+    <div th:unless="${canteen.paymentQrConfigured}" class="alert alert-error">
+        Not configured. Customers can only choose Cash until a QR code or UPI ID is added.
+    </div>
+    <form th:action="@{/admin/settings/qr}" method="post" enctype="multipart/form-data">
+        <div class="field">
+            <label for="qrImage" th:text="${canteen.paymentQrConfigured} ? 'Replace QR image (JPEG or PNG, up to 5 MB)' : 'QR image (JPEG or PNG, up to 5 MB)'">QR image</label>
+            <input type="file" id="qrImage" name="qrImage" accept="image/jpeg,image/png" data-max-bytes="5242880" required>
+        </div>
+        <button type="submit" class="btn" data-loading="Uploading...">Upload QR code</button>
+    </form>
+
+    <h2>Canteen details</h2>
+    <form th:action="@{/admin/settings}" method="post">
+        <div class="field">
+            <label for="name">Canteen name</label>
+            <input type="text" id="name" name="name" th:value="${canteen.name}" maxlength="80" required>
+        </div>
+        <div class="field">
+            <label for="location">Location</label>
+            <input type="text" id="location" name="location" th:value="${canteen.location}" maxlength="120">
+        </div>
+        <div class="form-row">
+            <div class="field">
+                <label for="openingTime">Opening time</label>
+                <input type="time" id="openingTime" name="openingTime" th:value="${canteen.openingTime}" required>
+            </div>
+            <div class="field">
+                <label for="closingTime">Closing time</label>
+                <input type="time" id="closingTime" name="closingTime" th:value="${canteen.closingTime}" required>
+            </div>
+        </div>
+        <div class="field">
+            <label for="upiId">UPI ID (optional)</label>
+            <input type="text" id="upiId" name="upiId" th:value="${canteen.upiId}" maxlength="130" placeholder="canteen@bank">
+            <div class="hint">Shown below the QR code at checkout.</div>
+        </div>
+        <button type="submit" class="btn">Save details</button>
+    </form>
+    <p class="small muted" style="margin-top: 16px">Customers can only order between the opening and closing time, and only
+        while a meal session is open. Meal times are set on the <a th:href="@{/admin/sessions}">Meal timings</a> page:
+        if you change the opening or closing time here, also adjust the Breakfast start or Snacks end time there.</p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

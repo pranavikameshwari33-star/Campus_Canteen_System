@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Register')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container narrow">
+    <h1>Register</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+
+    <form th:action="@{/register}" th:object="${form}" method="post" novalidate>
+        <div class="field">
+            <span class="label" style="display:block; font-weight:600; font-size:14px; margin-bottom:4px">I am a</span>
+            <label class="check"><input type="radio" th:field="*{role}" value="STUDENT"> Student</label>
+            &nbsp;&nbsp;
+            <label class="check"><input type="radio" th:field="*{role}" value="FACULTY"> Faculty member</label>
+            <div class="field-error" th:if="${#fields.hasErrors('role')}" th:errors="*{role}"></div>
+        </div>
+
+        <div class="field">
+            <label for="collegeId">Roll number or faculty ID</label>
+            <input type="text" th:field="*{collegeId}" maxlength="30" required>
+            <div class="hint">Use the ID issued by the college. You will log in with it.</div>
+            <div class="field-error" th:if="${#fields.hasErrors('collegeId')}" th:errors="*{collegeId}"></div>
+        </div>
+
+        <div class="field">
+            <label for="name">Full name</label>
+            <input type="text" th:field="*{name}" maxlength="80" required>
+            <div class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+        </div>
+
+        <div class="field">
+            <label for="department">Department</label>
+            <input type="text" th:field="*{department}" maxlength="80" required>
+            <div class="field-error" th:if="${#fields.hasErrors('department')}" th:errors="*{department}"></div>
+        </div>
+
+        <div class="field">
+            <label for="year">Year of study (students only)</label>
+            <select th:field="*{year}">
+                <option value="">-</option>
+                <option th:each="y : ${#numbers.sequence(1, 6)}" th:value="${y}" th:text="${y}">1</option>
+            </select>
+            <div class="field-error" th:if="${#fields.hasErrors('year')}" th:errors="*{year}"></div>
+        </div>
+
+        <div class="field">
+            <label for="phone">Mobile number (optional)</label>
+            <input type="text" th:field="*{phone}" maxlength="10" inputmode="numeric">
+            <div class="field-error" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></div>
+        </div>
+
+        <div class="field">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" minlength="8" maxlength="64" required autocomplete="new-password">
+            <div class="hint">At least 8 characters.</div>
+            <div class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
+        </div>
+
+        <div class="field">
+            <label for="confirmPassword">Confirm password</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" maxlength="64" required autocomplete="new-password">
+            <div class="field-error" th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}"></div>
+        </div>
+
+        <button type="submit" class="btn" data-loading="Creating account...">Create account</button>
+    </form>
+
+    <p style="margin-top: 20px">Already registered? <a th:href="@{/login}">Log in</a></p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

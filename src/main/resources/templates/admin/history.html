@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Order history')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container">
+    <h1>Order history</h1>
+    <p class="muted">Finished orders (collected, cancelled or payment rejected), by the date they were placed.</p>
+
+    <form th:action="@{/admin/history}" method="get" class="form-row">
+        <div class="field">
+            <label for="date">Date</label>
+            <input type="date" id="date" name="date" th:value="${date}">
+        </div>
+        <div class="field">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+                <option value="">All finished</option>
+                <option th:each="s : ${statusOptions}" th:value="${s}" th:text="${s.label}" th:selected="${s == status}">Collected</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-secondary">Show</button>
+    </form>
+
+    <p th:if="${orders.isEmpty()}" class="muted">No finished orders for this date.</p>
+    <div class="table-wrap" th:unless="${orders.isEmpty()}">
+        <table>
+            <thead>
+            <tr><th>Token</th><th>Order</th><th>Customer</th><th>Items</th><th class="num">Total</th><th>Status</th><th>Finished</th><th></th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="o : ${orders}">
+                <td th:text="${o.tokenDisplay ?: '-'}">001</td>
+                <td>
+                    <span th:text="${o.orderNumber}"></span>
+                    <div class="small muted" th:text="${o.mealSessionName}"></div>
+                </td>
+                <td>
+                    <span th:text="${o.customerName}"></span>
+                    <div class="small muted" th:text="${o.collegeId}"></div>
+                </td>
+                <td><div th:each="i : ${o.items}" th:text="${i.quantity} + ' x ' + ${i.itemName}"></div></td>
+                <td class="num" th:text="${@fmt.money(o.totalAmount)}"></td>
+                <td><span th:class="${@fmt.statusClass(o.orderStatus)}" th:text="${o.orderStatus.label}"></span></td>
+                <td th:text="${@fmt.time(o.updatedAt)}"></td>
+                <td><a th:href="@{/admin/orders/{id}(id=${o.id})}">Details</a></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

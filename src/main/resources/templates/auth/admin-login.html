@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Administrator login')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container narrow">
+    <h1>Canteen administrator login</h1>
+    <div class="alert alert-success" role="status" th:if="${success}" th:text="${success}">Success</div>
+    <div class="alert alert-error" role="alert" th:if="${param.error}">Incorrect administrator ID or password.</div>
+    <div class="alert alert-error" role="alert" th:if="${param.unavailable}">Login is not possible right now because the database cannot be reached. Please try again in a minute.</div>
+
+    <form th:action="@{/login}" method="post">
+        <input type="hidden" name="source" value="admin">
+        <div class="field">
+            <label for="collegeId">Administrator ID</label>
+            <input type="text" id="collegeId" name="collegeId" required autocomplete="username" autofocus>
+        </div>
+        <div class="field">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn" data-loading="Logging in...">Log in</button>
+    </form>
+
+    <p class="small muted" style="margin-top: 20px">New administrator? <a th:href="@{/admin/register}">Register here</a>
+        (the first administrator, or with an invitation code from an existing administrator).
+        Students and faculty should use the <a th:href="@{/login}">normal login</a>.</p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

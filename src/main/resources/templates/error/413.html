@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('File too large')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container">
+    <h1>File too large</h1>
+    <p>The file you tried to upload is too large. Images must be JPEG or PNG and at most 5 MB.</p>
+    <p>Go back, choose a smaller image (for example a screenshot instead of a camera photo) and try again.</p>
+    <p><a th:href="@{/}">Go to the start page</a></p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

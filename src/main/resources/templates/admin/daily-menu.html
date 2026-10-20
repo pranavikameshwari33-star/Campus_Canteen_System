@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Daily menu')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container">
+    <h1>Daily menu</h1>
+    <div th:replace="~{fragments/layout :: messages}"></div>
+
+    <p th:if="${sessions.isEmpty()}" class="alert alert-info">Add meal timings first on the
+        <a th:href="@{/admin/sessions}">Meal timings</a> page.</p>
+
+    <form th:unless="${sessions.isEmpty()}" th:action="@{/admin/daily-menu}" method="get" class="form-row">
+        <div class="field">
+            <label for="date">Date</label>
+            <input type="date" id="date" name="date" th:value="${date}" required>
+        </div>
+        <div class="field">
+            <label for="sessionId">Meal session</label>
+            <select id="sessionId" name="sessionId" required>
+                <option th:each="s : ${sessions}" th:value="${s.id}"
+                        th:selected="${selectedSession != null and selectedSession.id == s.id}"
+                        th:text="${s.name} + ' (' + ${s.timeRange} + ')' + (${s.active} ? '' : ' - inactive')">Lunch</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-secondary">Open menu</button>
+    </form>
+
+    <div th:unless="${menusForDate.isEmpty()}">
+        <h2 th:text="'Menus for ' + ${date}">Menus for date</h2>
+        <div class="table-wrap narrow">
+            <table>
+                <thead><tr><th>Session</th><th>Items</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="m : ${menusForDate}">
+                    <td th:text="${m.mealSessionName}">Lunch</td>
+                    <td th:text="${m.items.size()}">5</td>
+                    <td>
+                        <span class="status status-published" th:if="${m.published}">Published</span>
+                        <span class="status" th:unless="${m.published}">Draft</span>
+                    </td>
+                    <td><a th:href="@{/admin/daily-menu(date=${m.date}, sessionId=${m.mealSessionId})}">Edit</a></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div th:if="${form != null}">
+        <h2 th:text="${selectedSession.name} + ' menu for ' + ${date}">Lunch menu</h2>
+        <p th:if="${existing == null}" class="muted">No menu saved yet. Tick the items to sell, set prices and quantities, then publish.</p>
+        <p th:if="${existing != null}">
+            <span class="status status-published" th:if="${existing.published}">Published</span>
+            <span class="status" th:unless="${existing.published}">Draft - customers cannot see it</span>
+            <span class="small muted" th:if="${existing.published}"
+                  th:text="' by ' + ${existing.publishedBy} + ', ' + ${@fmt.dateTime(existing.publishedAt)}"></span>
+        </p>
+        <p class="small muted">
+            Food sold in <span th:text="${selectedSession.name}">Lunch</span>:
+            <strong th:text="${#strings.listJoin(selectedSession.effectiveCategories, ', ')}">Lunch, Chinese</strong>
+            (change this on <a th:href="@{/admin/sessions}">Meal timings</a>).
+            Every ticked item needs a price above ₹0 and a quantity. "Quantity left" is the remaining stock; it goes down
+            automatically as orders are placed. Untick "Available" (or set the quantity to 0) to mark an item sold out.
+            Price changes apply to new orders only.</p>
+        <div class="alert alert-info" th:if="${pastDate}">This date has passed. The menu is shown for reference and cannot be changed.</div>
+        <p th:if="${form.rows.isEmpty()}" class="alert alert-info">There are no active food items in the categories sold
+            in this session. <a th:href="@{/admin/menu-items/new}">Add food items</a> first.</p>
+
+        <form th:unless="${form.rows.isEmpty()}" th:action="@{/admin/daily-menu}" th:object="${form}" method="post">
+            <input type="hidden" th:field="*{date}">
+            <input type="hidden" th:field="*{mealSessionId}">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr><th>Sell</th><th>Item</th><th>Price (₹)</th><th>Quantity left</th><th>Available</th></tr>
+                    </thead>
+                    <tbody>
+                    <th:block th:each="row, st : *{rows}">
+                    <tr class="group-row" th:if="${st.first or form.rows[st.index - 1].categoryLabel != row.categoryLabel}">
+                        <td colspan="5" th:text="${row.categoryLabel}">Breakfast / Tiffins</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <input type="hidden" th:field="*{rows[__${st.index}__].menuItemId}">
+                            <input type="hidden" th:field="*{rows[__${st.index}__].originalQuantity}">
+                            <input type="checkbox" th:field="*{rows[__${st.index}__].included}" th:aria-label="'Sell ' + ${row.name}">
+                        </td>
+                        <td>
+                            <span th:text="${row.name}">Idly</span>
+                            <div class="small status-text-warn" th:if="${row.note}" th:text="${row.note}"></div>
+                        </td>
+                        <td><input class="price" type="number" min="0.01" max="10000" step="0.01"
+                                   th:field="*{rows[__${st.index}__].price}" th:aria-label="'Price of ' + ${row.name}"></td>
+                        <td><input class="qty" type="number" min="0" max="10000" step="1"
+                                   th:field="*{rows[__${st.index}__].quantity}" th:aria-label="'Quantity of ' + ${row.name}"></td>
+                        <td><input type="checkbox" th:field="*{rows[__${st.index}__].available}" th:aria-label="${row.name} + ' available'"></td>
+                    </tr>
+                    </th:block>
+                    </tbody>
+                </table>
+            </div>
+            <div class="actions" th:unless="${pastDate}">
+                <button type="submit" name="action" value="publish" class="btn">Save and publish</button>
+                <button type="submit" name="action" value="save" class="btn btn-secondary">Save as draft</button>
+                <button type="submit" name="action" value="unpublish" class="btn btn-danger"
+                        th:if="${existing != null and existing.published}">Unpublish</button>
+            </div>
+        </form>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
