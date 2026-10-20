@@ -39,7 +39,7 @@ says in plain English what is wrong and what to check (the connection string is 
 | "Atlas refused the secure connection ... IP address is not on the Atlas allow list" | Atlas does not accept this computer | Atlas > **Security > Network Access** > add your public IP (find it at <https://api.ipify.org>), wait for *Active* |
 | "rejected the database username or password" | Wrong user or password in the connection string | Atlas > **Security > Database Access** |
 | "cluster address ... could not be found" | Typo in the host part, or no internet/DNS | Copy the string again from Atlas > **Connect > Drivers** |
-| "No MongoDB server answered" | Network blocked or offline | Internet connection, firewall/college network (port 27017) |
+| "No MongoDB server answered" | Network blocked or offline | Internet connection, firewall/college network  |
 
 Network Access checklist when the IP refusal will not go away: the entry is in the **same Atlas project** as the
 cluster; it shows **Active**, not *Pending*; the address is the one this PC really uses (a browser VPN/proxy can
