@@ -31,3 +31,7 @@ bin/
 ### Build output and uploaded files ###
 target/
 uploads/
+
+.env
+.env.*
+!.env.example
